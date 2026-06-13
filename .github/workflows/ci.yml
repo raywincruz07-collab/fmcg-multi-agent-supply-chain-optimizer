@@ -23,6 +23,12 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[dev]"
+    - name: Show tool versions
+      run: |
+        python --version
+        python -m black --version
+        python -m ruff --version
+        python -m pytest --version
     - name: Run Ruff
       run: |
         python -m ruff check .

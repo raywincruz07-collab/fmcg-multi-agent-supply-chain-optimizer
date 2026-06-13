@@ -1,20 +1,25 @@
 # FMCG Multi-Agent Supply Chain Optimizer
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)
-![CI](https://github.com/USERNAME/fmcg-multi-agent-supply-chain-optimizer/actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/raywincruz07-collab/fmcg-multi-agent-supply-chain-optimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/raywincruz07-collab/fmcg-multi-agent-supply-chain-optimizer/actions/workflows/ci.yml)
 
 **Repository maintained and professionally refactored by Raywin Cruz. Original implementation contributions by Namrath Basavaraju.**
 
 This repository contains a deterministic decision-support orchestration pipeline for FMCG supply chains. It simulates data processing across five distinct stages: Demand Forecasting, Pack Size Optimization, Financial Impact Analysis, Production Planning, and Dispatch Network Routing.
 
+## Dashboard Preview
+
+![FMCG Multi-Agent Supply Chain Optimizer dashboard](assets/dashboard-overview.png)
+
 ## Features
 
-- **Demand Intelligence:** Compares Random Forest against robust time-series baselines (Naive, Seasonal Naive, Rolling Mean) using a strict chronological train/test split to prevent leakage.
+- **Demand Intelligence:** Compares Random Forest against robust time-series baselines (Naive, Seasonal Naive, Rolling Mean) using a Chronological train-validation-test evaluation, where validation performance selects the model and the untouched test period reports final performance.
 - **Pack-Size Recommendations:** Provides actionable packing guidelines constrained by Minimum Order Quantities (MOQs) and case-multiples.
-- **Financial Scenario Modelling:** Generates Conservative, Base, and Optimistic PBT/Revenue projections.
+- **Financial Scenario Modelling:** Generates Conservative, Base, and Optimistic revenue and operating-contribution scenario estimates.
 - **Production & Dispatch:** Simulates capacity-constrained Economic Order Quantity (EOQ) targets and true NetworkX graph routing.
 - **Transparent Execution Trace:** Orchestrator logs all deterministic decisions without artificial benchmark clamping or LLM "hallucinations."
+  <br>
+  ![Deterministic multi-agent execution trace](assets/agent-trace.png)
 - **Demo Dashboard:** A clean Streamlit application reading purely from generated artifacts, eliminating execution latency in the presentation layer.
 
 ## Architecture & Blueprint
@@ -34,7 +39,7 @@ This application is built to run immediately for demonstration purposes.
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/USERNAME/fmcg-multi-agent-supply-chain-optimizer.git
+git clone https://github.com/raywincruz07-collab/fmcg-multi-agent-supply-chain-optimizer.git
 cd fmcg-multi-agent-supply-chain-optimizer
 
 # 2. Install dependencies
@@ -60,7 +65,9 @@ To run with the real dataset:
 ```text
 ├── .github/workflows/    # CI Pipeline
 ├── app/                  # Streamlit Dashboard (Presentation layer)
-├── artifacts/            # Output from pipeline runs (ignored in Git)
+├── demo_artifacts/       # Lightweight committed artifacts used by the default dashboard
+├── artifacts/            # Local pipeline outputs, ignored by Git
+├── assets/               # Recruiter-facing dashboard screenshots
 ├── configs/              # Scenario definitions (default.yaml)
 ├── data/                 # Sample generated data and raw directories
 ├── docs/                 # Documentation and methodology
@@ -70,8 +77,10 @@ To run with the real dataset:
 │   ├── data/             # Dimensional data loaders
 │   └── orchestration/    # Orchestrator and state tracking
 └── tests/                # Pytest unit and integration tests
+```
 
 ## Results & Transparency
+
 - **Forecasting:** Baselines (e.g., Seasonal Naive, Rolling Mean) frequently outperform Random Forest for several SKUs. The pipeline honestly selects the best model per SKU based on validation set performance.
 - **Financial Scenarios:** Financial results are scenario estimates configured via `configs/default.yaml`, not observed historical outcomes. 
 - **Routing:** Dispatch results are graph-based scenario outputs calculated via shortest-path algorithms over a constrained graph.
