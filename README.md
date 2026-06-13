@@ -34,7 +34,7 @@ flowchart TD
     E --> Dash[Streamlit Dashboard]
 ```
 
-This repository serves as an integration blueprint. In a production environment:
+This repository serves as an integration blueprint. In a potential SAP-integrated architecture:
 - **Demand Intelligence:** Deployed via **SAP BTP AI Core** (Model Serving).
 - **Pack Size Optimization:** Executed via **SAP HANA Cloud / Joule Agents** (Decision Layer).
 - **Financial Impact:** Visualized within **SAP Analytics Cloud**.
