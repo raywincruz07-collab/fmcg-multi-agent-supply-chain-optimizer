@@ -24,6 +24,16 @@ This repository contains a deterministic decision-support orchestration pipeline
 
 ## Architecture & Blueprint
 
+```mermaid
+flowchart TD
+    Data[(Data Layer)] --> A[Demand Intelligence Agent]
+    A --> B[Pack Size Agent]
+    B --> C[Financial Agent]
+    B --> D[Production Agent]
+    D --> E[Dispatch Agent]
+    E --> Dash[Streamlit Dashboard]
+```
+
 This repository serves as an integration blueprint. In a production environment:
 - **Demand Intelligence:** Deployed via **SAP BTP AI Core** (Model Serving).
 - **Pack Size Optimization:** Executed via **SAP HANA Cloud / Joule Agents** (Decision Layer).
@@ -79,8 +89,23 @@ To run with the real dataset:
 └── tests/                # Pytest unit and integration tests
 ```
 
-## Results & Transparency
+## Verified Capabilities & Transparency
 
-- **Forecasting:** Baselines (e.g., Seasonal Naive, Rolling Mean) frequently outperform Random Forest for several SKUs. The pipeline honestly selects the best model per SKU based on validation set performance.
+- **Forecasting Evaluation:** Chronological evaluation and per-SKU model selection using validation WAPE. In the included generated-data demonstration, baseline models outperform Random Forest for most evaluated SKUs. This result describes the demo dataset and is not a general forecasting benchmark.
 - **Financial Scenarios:** Financial results are scenario estimates configured via `configs/default.yaml`, not observed historical outcomes. 
 - **Routing:** Dispatch results are graph-based scenario outputs calculated via shortest-path algorithms over a constrained graph.
+
+## Limitations
+
+- **No Live Integration:** No live SAP connection exists; it is a conceptual blueprint.
+- **Generated Data:** By default, runs on generated sample data.
+- **Not in Production:** This is a deterministic simulation, not deployed to production.
+- **Financial Estimates:** Financial results are scenario estimates, not observed outcomes.
+
+## Testing
+
+The pipeline is verified by a 23-test suite covering all agents and integration points:
+
+```bash
+python -m pytest -v
+```
