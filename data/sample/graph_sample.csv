@@ -1,0 +1,14 @@
+source,target,type,cost,capacity
+P_100,S_10,plant_to_storage,100,500
+P_100,S_20,plant_to_storage,150,500
+P_200,S_20,plant_to_storage,120,500
+P_200,S_30,plant_to_storage,80,500
+P_300,S_10,plant_to_storage,200,500
+P_300,S_20,plant_to_storage,10,10
+P_300,S_30,plant_to_storage,190,500
+S_10,Customer_A,storage_to_customer,50,500
+S_10,Customer_B,storage_to_customer,60,500
+S_20,Customer_A,storage_to_customer,50,500
+S_20,Customer_B,storage_to_customer,60,500
+S_30,Customer_A,storage_to_customer,50,500
+S_30,Customer_B,storage_to_customer,60,500

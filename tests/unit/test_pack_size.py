@@ -1,4 +1,3 @@
-import pytest
 import pandas as pd
 from fmcg_supply_chain.agents.pack_size import PackSizeOptimizationAgent
 from fmcg_supply_chain.orchestration.state import PipelineState, AgentResult

@@ -73,9 +73,9 @@ class UnifiedDataLoader:
         base.fillna(0, inplace=True)
 
         # We also need mappings and graphs. If they are missing in raw, we return empty structures.
-        nodes_plant = pd.DataFrame()
+        pd.DataFrame()
         if (self.raw_dir / "Nodes" / "Plant.csv").exists():
-            nodes_plant = pd.read_csv(self.raw_dir / "Nodes" / "Plant.csv")
+            pd.read_csv(self.raw_dir / "Nodes" / "Plant.csv")
 
         # Normalize and construct dimensions...
         metadata = {

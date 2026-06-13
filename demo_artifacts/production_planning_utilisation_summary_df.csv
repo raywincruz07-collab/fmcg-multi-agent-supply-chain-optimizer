@@ -1,0 +1,4 @@
+PlantId,TotalDailyLoad,Capacity,TargetUtilisationPct
+P_100,159.31025000000002,10000,1.59
+P_200,168.3,10000,1.68
+P_300,133.6640625,10000,1.34

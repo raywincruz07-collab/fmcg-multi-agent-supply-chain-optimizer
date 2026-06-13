@@ -5,7 +5,9 @@ active_scenario: base
 
 # Demand Forecasting Settings
 demand:
-  horizon_days: 30
+  validation_days: 30
+  test_days: 30
+  minimum_training_days: 90
   models_to_evaluate:
     - naive_last
     - rolling_mean_7d
@@ -44,8 +46,10 @@ financial:
     carrying_cost_rate: 0.20
     financing_rate: 0.06
     baseline_debtor_days: 45
-    pack_consolidation_benefit_multiplier: 0.90
-    demand_uplift_pct: 0.05
+    demand_uplift_pct: 0.0
+    stockout_recovery_uplift_pct: 0.0
+    pack_revenue_impact_pct: 0.0
+    pack_consolidation_benefit_multiplier: 1.0
 
   optimistic:
     cogs_ratio: 0.55
@@ -55,6 +59,7 @@ financial:
     baseline_debtor_days: 45
     pack_consolidation_benefit_multiplier: 0.85
     demand_uplift_pct: 0.10
+    adopt_pack_recommendations: true
 
 # Production Settings
 production:
@@ -66,3 +71,5 @@ production:
 dispatch:
   # Cost per hop in the graph, default values if historical network cost is unavailable
   cost_per_hop: 50
+  max_candidate_routes: 5
+  max_route_hops: 6

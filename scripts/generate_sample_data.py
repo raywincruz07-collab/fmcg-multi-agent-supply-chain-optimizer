@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -15,7 +14,6 @@ def generate_sample_data():
     product_groups = ["G1", "G2"]
 
     # 2. Mappings
-    # Each SKU maps to exactly one Plant and one Storage Location
     sku_mappings = []
     for i, sku in enumerate(skus):
         sku_mappings.append(
@@ -29,13 +27,103 @@ def generate_sample_data():
     mappings_df = pd.DataFrame(sku_mappings)
 
     # 3. Graph Connectivity (Edges)
-    # Plants -> Storage -> Customers
+    # The standard generated demonstration dataset should contain:
+    # - At least three plants, three storage locations
+    # - Multiple connected alternative routes
+    # - Different costs and capacities
+    # - At least one case where the cheapest route is infeasible due to capacity
+    # No disconnected nodes in the standard flow.
     edges = []
-    for plant in plants:
-        for st in storage:
-            edges.append({"source": plant, "target": st, "type": "plant_to_storage"})
+
+    # Base connections
+    # P_100 connects to S_10 and S_20
+    edges.append(
+        {
+            "source": "P_100",
+            "target": "S_10",
+            "type": "plant_to_storage",
+            "cost": 100,
+            "capacity": 500,
+        }
+    )
+    edges.append(
+        {
+            "source": "P_100",
+            "target": "S_20",
+            "type": "plant_to_storage",
+            "cost": 150,
+            "capacity": 500,
+        }
+    )
+    # P_200 connects to S_20 and S_30
+    edges.append(
+        {
+            "source": "P_200",
+            "target": "S_20",
+            "type": "plant_to_storage",
+            "cost": 120,
+            "capacity": 500,
+        }
+    )
+    edges.append(
+        {
+            "source": "P_200",
+            "target": "S_30",
+            "type": "plant_to_storage",
+            "cost": 80,
+            "capacity": 500,
+        }
+    )
+    # P_300 connects to S_10, S_20, S_30
+    edges.append(
+        {
+            "source": "P_300",
+            "target": "S_10",
+            "type": "plant_to_storage",
+            "cost": 200,
+            "capacity": 500,
+        }
+    )
+    edges.append(
+        {
+            "source": "P_300",
+            "target": "S_20",
+            "type": "plant_to_storage",
+            "cost": 10,
+            "capacity": 10,
+        }
+    )  # CHEAPEST BUT INFEASIBLE (capacity < 50)
+    edges.append(
+        {
+            "source": "P_300",
+            "target": "S_30",
+            "type": "plant_to_storage",
+            "cost": 190,
+            "capacity": 500,
+        }
+    )
+
+    # Storage to Customers
     for st in storage:
-        edges.append({"source": st, "target": "Customer", "type": "storage_to_customer"})
+        edges.append(
+            {
+                "source": st,
+                "target": "Customer_A",
+                "type": "storage_to_customer",
+                "cost": 50,
+                "capacity": 500,
+            }
+        )
+        edges.append(
+            {
+                "source": st,
+                "target": "Customer_B",
+                "type": "storage_to_customer",
+                "cost": 60,
+                "capacity": 500,
+            }
+        )
+
     graph_df = pd.DataFrame(edges)
 
     # 4. Temporal Fact Table (Date, SkuId)
@@ -44,10 +132,8 @@ def generate_sample_data():
 
     facts = []
     for sku in skus:
-        # Base demand characteristics per SKU
         base_demand = np.random.uniform(20, 100)
         volatility = np.random.uniform(0.1, 0.5)
-        # Introduce zero-demand probability
         zero_prob = np.random.uniform(0.0, 0.3)
 
         for d in dates:
@@ -56,7 +142,6 @@ def generate_sample_data():
             else:
                 sales = max(0, int(np.random.normal(base_demand, base_demand * volatility)))
 
-            # Production usually matches sales with some variation
             production = int(sales * np.random.uniform(0.9, 1.2)) if sales > 0 else 0
 
             facts.append(
@@ -66,9 +151,7 @@ def generate_sample_data():
                     "SalesOrderQty": sales,
                     "ProductionQty": production,
                     "DeliveryQty": sales,
-                    "FactoryIssueQty": max(
-                        0, int(production * np.random.uniform(0.01, 0.05))
-                    ),  # 1-5% of prod
+                    "FactoryIssueQty": max(0, int(production * np.random.uniform(0.01, 0.05))),
                     "OnHandQty": max(
                         0, int(np.random.normal(base_demand * 1.5, base_demand * 0.2))
                     ),
@@ -80,7 +163,6 @@ def generate_sample_data():
 
     fact_df = pd.DataFrame(facts)
 
-    # Output paths
     root = Path(__file__).resolve().parent.parent
     sample_dir = root / "data" / "sample"
     sample_dir.mkdir(parents=True, exist_ok=True)

@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
+import json
 import os
 import plotly.express as px
-import plotly.graph_objects as go
 
 # --- PAGE CONFIG ---
 st.set_page_config(
@@ -33,17 +33,71 @@ st.markdown(
 @st.cache_data
 def load_artifacts():
     root_dir = Path(__file__).resolve().parent.parent
-    artifacts_dir = root_dir / "artifacts"
+    env_artifact_dir = os.environ.get("ARTIFACT_DIR")
+    if env_artifact_dir:
+        artifacts_path = Path(env_artifact_dir)
+        if artifacts_path.is_absolute():
+            artifacts_dir = artifacts_path
+        else:
+            artifacts_dir = root_dir / artifacts_path
+    else:
+        artifacts_dir = root_dir / "demo_artifacts"
 
     if not artifacts_dir.exists():
         return None
 
     data = {}
+
+    # Schema validation
+    metadata_path = artifacts_dir / "metadata.json"
+    if not metadata_path.exists():
+        data["schema_valid"] = False
+        data["schema_error"] = (
+            f"Missing metadata.json in {artifacts_dir.name}. Please run pipeline to generate v1.0 schema."
+        )
+        return data
+
+    try:
+        with open(metadata_path, "r") as f:
+            metadata = json.load(f)
+
+        if metadata.get("schema_version") != "1.0":
+            data["schema_valid"] = False
+            data["schema_error"] = (
+                f"Invalid schema version. Expected 1.0, got {metadata.get('schema_version')}."
+            )
+            return data
+
+        if not metadata.get("data_mode"):
+            data["schema_valid"] = False
+            data["schema_error"] = "Missing data_mode in metadata.json."
+            return data
+
+        data["schema_valid"] = True
+        data["metadata"] = metadata
+    except Exception as e:
+        data["schema_valid"] = False
+        data["schema_error"] = f"Failed to parse metadata.json: {e}"
+        return data
+
     for f in artifacts_dir.glob("*.csv"):
         try:
-            data[f.stem] = pd.read_csv(f)
+            df = pd.read_csv(f)
+            if df.empty:
+                data["schema_valid"] = False
+                data["schema_error"] = f"File {f.name} is empty."
+                return data
+            data[f.stem] = df
         except Exception:
             pass
+
+    required_keys = ["demand_intelligence_forecast_df", "financial_impact_financial_table_df"]
+    for req in required_keys:
+        if req not in data:
+            data["schema_valid"] = False
+            data["schema_error"] = f"Missing required artifact: {req}"
+            return data
+
     return data
 
 
@@ -89,6 +143,14 @@ def main():
         st.code("python scripts/run_pipeline.py --config configs/default.yaml")
         st.stop()
 
+    if not artifacts.get("schema_valid"):
+        st.error(f"Artifact Validation Failed: {artifacts.get('schema_error')}")
+        st.info(
+            "The schema has been updated. Please execute the pipeline to generate new artifacts:"
+        )
+        st.code("python scripts/run_pipeline.py --config configs/default.yaml")
+        st.stop()
+
     st.sidebar.markdown("---")
     st.sidebar.info(
         "📌 **Demo Mode Active**\n\nThis dashboard is visualizing static generated artifacts from the most recent pipeline run."
@@ -125,17 +187,17 @@ def render_overview(data):
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        val = metrics_df[metrics_df["Metric"] == "PBT_Uplift_Pct"]["Value"].values
-        render_metric("PBT Uplift", f"{val[0]:.1f}%" if len(val) else "N/A")
+        val = metrics_df[metrics_df["Metric"] == "Operating_Contribution_Change_Pct"]["Value"].values
+        render_metric("Op. Contribution Change", f"{float(val[0]):.1f}%" if len(val) else "N/A")
     with c2:
-        val = metrics_df[metrics_df["Metric"] == "Revenue_Uplift_Pct"]["Value"].values
-        render_metric("Revenue Uplift", f"{val[0]:.1f}%" if len(val) else "N/A")
+        val = metrics_df[metrics_df["Metric"] == "Revenue_Change_Pct"]["Value"].values
+        render_metric("Revenue Change", f"{float(val[0]):.1f}%" if len(val) else "N/A")
     with c3:
         val = metrics_df[metrics_df["Metric"] == "average_network_hops"]["Value"].values
-        render_metric("Avg Network Hops", f"{val[0]:.1f}" if len(val) else "N/A")
+        render_metric("Avg Network Hops", f"{float(val[0]):.1f}" if len(val) else "N/A")
     with c4:
-        val = metrics_df[metrics_df["Metric"] == "Global_WAPE"]["Value"].values
-        render_metric("Demand WAPE", f"{val[0]:.1f}%" if len(val) else "N/A")
+        val = metrics_df[metrics_df["Metric"] == "Global_Test_WAPE"]["Value"].values
+        render_metric("Demand Test WAPE", f"{float(val[0]):.1f}%" if len(val) else "N/A")
 
     st.markdown("### Deployment Blueprint: SAP Integration")
     st.info(
@@ -165,10 +227,12 @@ def render_demand(data):
     if metrics_df is not None:
         st.subheader("Model Selection Honesty")
         st.write(
-            "Random Forest only wins if it beats Naive, Rolling, and Seasonal baselines on WAPE."
+            "Model selected purely on Validation split. Test split evaluates the chosen model untouched."
         )
-        win_counts = metrics_df["BestModel"].value_counts().reset_index()
-        fig = px.pie(win_counts, names="BestModel", values="count", title="Winning Models per SKU")
+        win_counts = metrics_df["SelectedModel"].value_counts().reset_index()
+        fig = px.pie(
+            win_counts, names="SelectedModel", values="count", title="Winning Models per SKU"
+        )
         st.plotly_chart(fig)
         st.dataframe(metrics_df.head(15))
 
@@ -205,13 +269,13 @@ def render_financial(data):
         st.subheader(f"Active Configured Scenario: {scen.upper()}")
         st.warning("Scenario estimate — not an observed business outcome.")
 
-        top_skus = df.nlargest(10, "PBT_Uplift_Pct")
+        top_skus = df.nlargest(10, "Operating_Contribution_Change_Pct")
         fig = px.bar(
             top_skus,
             x="SkuId",
-            y=["Before_PBT", "After_PBT"],
+            y=["Baseline_Operating_Contribution", "Scenario_Operating_Contribution"],
             barmode="group",
-            title="PBT Impact (Top 10 SKUs)",
+            title="Operating Contribution Impact (Top 10 SKUs)",
         )
         st.plotly_chart(fig)
         st.dataframe(df)
@@ -233,7 +297,9 @@ def render_dispatch(data):
     st.header("Dispatch Network")
     df = data.get("dispatch_optimization_path_df")
     if df is not None:
-        st.write("Genuine NetworkX Shortest Paths (No artificial lead time reductions applied).")
+        st.write(
+            "Genuine NetworkX Feasible Shortest Paths (No artificial lead time reductions applied)."
+        )
         st.dataframe(df)
 
 
@@ -242,7 +308,7 @@ def render_trace(data):
     df = data.get("orchestration_trace")
     if df is not None:
         st.write("Deterministic orchestration log ensuring transparency.")
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df)
 
 
 def render_methodology():
@@ -252,8 +318,10 @@ def render_methodology():
     ### Technical Audit Fixes
     - **No Fake Agents:** The system acts as a deterministic decision-support orchestrator, not autonomous LLM agents.
     - **No Target Clamping:** `np.clip` and forced benchmark generation were removed in favor of explicit configuration scenarios.
-    - **No Data Leakage:** Train/Test splits use a strict global chronological boundary. Zero-demand facts are correctly preserved.
+    - **No Data Leakage:** Strict Train/Val/Test global chronological boundaries are enforced. Zero-demand facts are correctly preserved.
     - **No Invalid Joins:** M5 (Walmart POS) and SupplyGraph (FMCG Manufacturing) datasets are explicitly separated.
+    - **Transparent Financials:** Explicit Operating Contribution bridges are calculated, removing opaque generic 'PBT' multipliers.
+    - **Bounded Routing:** Validates capacity feasibility on deterministic routes.
     
     ### Limitations
     - True graph cost requires external carrier routing APIs.

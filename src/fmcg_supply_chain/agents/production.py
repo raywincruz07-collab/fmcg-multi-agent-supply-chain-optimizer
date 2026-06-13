@@ -49,6 +49,11 @@ class ProductionPlanningAgent(BaseAgent):
             else:
                 eoq = 0
 
+            capacity_feasible = True
+            if eoq > max_cap:
+                eoq = max_cap
+                capacity_feasible = False
+
             daily_production_target = demand * 1.05  # Add safety buffer
 
             if plant not in plant_loads:
@@ -60,8 +65,10 @@ class ProductionPlanningAgent(BaseAgent):
                     "SkuId": sku,
                     "PlantId": plant,
                     "DailyDemand": demand,
+                    "AnnualDemand": annual_demand,
                     "OptimalBatchSize_EOQ": round(eoq, 0),
                     "TargetDailyProduction": round(daily_production_target, 0),
+                    "CapacityFeasible": capacity_feasible,
                 }
             )
 

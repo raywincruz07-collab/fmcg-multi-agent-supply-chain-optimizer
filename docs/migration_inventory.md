@@ -6,7 +6,6 @@ This document tracks the initial state of the `fmcg-agentic-ai` repository and t
 - **Original Implementation Author:** Namrath Basavaraju (MSc Data Science, University of Mannheim)
 - **Datasets:**
   - SupplyGraph: Wasi et al., AAAI 2024
-  - M5 Forecasting: Makridakis et al., Kaggle 2020
 - **Refactoring Contributor & Maintainer:** Raywin Cruz
 
 *Note: The new repository will clearly state: "Repository maintained and professionally refactored by Raywin Cruz. Original implementation contributions by Namrath Basavaraju."*
@@ -23,14 +22,14 @@ This document tracks the initial state of the `fmcg-agentic-ai` repository and t
   - `streamlit run app.py`
 
 ## Existing Agents
-1. **Demand Intelligence Agent:** Uses Random Forest to predict demand, injecting M5 calendar signals (SNAP, prices).
+1. **Demand Intelligence Agent:** Uses Random Forest to predict demand.
 2. **Pack Size Optimization Agent:** Uses KMeans to cluster SKUs into fast, medium, and slow movers, providing pack configurations.
 3. **Financial Impact Agent:** Simulates Revenue, PBT, Debtor Cycle Savings, and Inventory Reduction. Contains a conflict resolution loop back to Pack Size.
 4. **Production Planning Agent:** Simulates EOQ batch sizing, plant utilisation, and "factory issue rate".
 5. **Dispatch Optimization Agent:** Uses NetworkX to simulate routing and lead time reductions.
 
 ## Known Methodological Problems (To Be Corrected)
-1. **Data Architecture:** M5 and SupplyGraph data are naively joined by Date/SKU despite M5 being Walmart POS data and SupplyGraph being FMCG supply chain telemetry from a different timeline/taxonomy.
+1. **Data Architecture:** Naively joining non-related datasets by Date/SKU creates fundamentally invalid synthetic relationships.
 2. **Train/Test Split Leakage:** The Demand agent splits the dataset by row index per SKU rather than using a global chronological split.
 3. **Model Selection without Baselines:** The Demand agent uses Random Forest without comparing against naive or rolling mean baselines.
 4. **Target Clamping (`np.clip`):** The Financial Impact agent and Dispatch Optimization agent artificially force generated outputs to fall within arbitrary pre-defined benchmark ranges (e.g., 20-30% reduction).
@@ -45,7 +44,7 @@ This document tracks the initial state of the `fmcg-agentic-ai` repository and t
 - Pydantic/dataclass-style orchestration flow.
 
 ## Features to Remove (And Reason)
-- **M5 dataset join:** Removed from the main pipeline because joining non-related Walmart retail data with FMCG manufacturing telemetry creates fundamentally invalid synthetic relationships. Moved to a standalone optional `m5_forecasting_benchmark.py`.
+- **M5 dataset join:** Completely removed from the repository because joining non-related Walmart retail data with FMCG manufacturing telemetry creates fundamentally invalid synthetic relationships.
 - **Target-clamped metrics:** Removed because forcing results to match an external white-paper benchmark invalidates the simulation. Replaced with honest calculation and comparative benchmarking.
 - **SAP Fake Connection Toggles:** Removed as they misrepresent the technical reality of the project. Mentioned instead strictly as a "Deployment Blueprint".
 - **`np.clip()` constraints in Financial/Dispatch Agents:** Removed to allow raw metrics to surface honestly.

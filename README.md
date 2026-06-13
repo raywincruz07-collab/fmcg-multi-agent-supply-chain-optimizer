@@ -25,9 +25,12 @@ This repository serves as an integration blueprint. In a production environment:
 - **Financial Impact:** Visualized within **SAP Analytics Cloud**.
 - **Production & Dispatch:** Handled by **SAP IBP** and **SAP TM**.
 
+> [!NOTE]
+> **No live SAP connection exists.** This project acts as a standalone simulation and conceptual blueprint for what an SAP-integrated agentic supply-chain might look like.
+
 ## Quickstart
 
-This application is built to run immediately using a deterministic sample dataset for demonstration purposes.
+This application is built to run immediately for demonstration purposes.
 
 ```bash
 # 1. Clone the repository
@@ -37,25 +40,20 @@ cd fmcg-multi-agent-supply-chain-optimizer
 # 2. Install dependencies
 pip install -e .
 
-# 3. Generate sample data
-python scripts/generate_sample_data.py
-
-# 4. Run the orchestration pipeline
-python scripts/run_pipeline.py --config configs/default.yaml
-
-# 5. Launch the Dashboard
+# 3. Launch the Dashboard
 streamlit run app/streamlit_app.py
 ```
 
+> [!IMPORTANT]
+> **Default dashboard mode uses committed generated demonstration artifacts** located in `demo_artifacts/`. To run the pipeline yourself, execute `python scripts/run_pipeline.py --config configs/default.yaml`. Runtime pipeline outputs go to the git-ignored `artifacts/` directory.
+
 ## Datasets
 
-The raw data processing was developed around the **SupplyGraph** dataset structure (Wasi et al., AAAI 2024). Due to size limitations and licensing, the raw datasets are not included. The pipeline gracefully falls back to generating a coherent, valid sample dataset if the raw source is missing.
+The default demonstration uses generated data following a **SupplyGraph-inspired schema**. Due to size limitations and licensing, the original SupplyGraph (Wasi et al., AAAI 2024) raw datasets are not included. The pipeline gracefully falls back to generating a coherent, valid sample dataset if the raw source is missing.
 
 To run with the real dataset:
 1. Review the data layout instructions in `scripts/download_data.py`.
 2. Place the `Temporal Data` and `Nodes` directories into `data/raw/supplygraph/`.
-
-*(Note: The M5 Kaggle Dataset, originally mixed into the codebase, has been isolated to `experiments/m5_forecasting_benchmark.py` to preserve architectural purity).*
 
 ## Project Structure
 
@@ -65,12 +63,15 @@ To run with the real dataset:
 ├── artifacts/            # Output from pipeline runs (ignored in Git)
 ├── configs/              # Scenario definitions (default.yaml)
 ├── data/                 # Sample generated data and raw directories
-├── docs/                 # Migration inventory and notes
-├── experiments/          # Standalone benchmarks (e.g. M5)
+├── docs/                 # Documentation and methodology
 ├── scripts/              # Pipeline execution and data generation
 ├── src/fmcg_supply_chain/
 │   ├── agents/           # The 5 pipeline agents
 │   ├── data/             # Dimensional data loaders
 │   └── orchestration/    # Orchestrator and state tracking
-└── tests/                # Pytest unit tests
-```
+└── tests/                # Pytest unit and integration tests
+
+## Results & Transparency
+- **Forecasting:** Baselines (e.g., Seasonal Naive, Rolling Mean) frequently outperform Random Forest for several SKUs. The pipeline honestly selects the best model per SKU based on validation set performance.
+- **Financial Scenarios:** Financial results are scenario estimates configured via `configs/default.yaml`, not observed historical outcomes. 
+- **Routing:** Dispatch results are graph-based scenario outputs calculated via shortest-path algorithms over a constrained graph.

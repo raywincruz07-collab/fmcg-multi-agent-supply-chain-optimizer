@@ -1,11 +1,9 @@
-import pytest
-import os
 import yaml
 import pandas as pd
 from pathlib import Path
 from fmcg_supply_chain.orchestration.orchestrator import AgentOrchestrator
 from fmcg_supply_chain.agents.base import BaseAgent
-from fmcg_supply_chain.orchestration.state import PipelineState, AgentResult
+from fmcg_supply_chain.orchestration.state import PipelineState
 
 
 def test_orchestrator_failure_path():
@@ -18,7 +16,7 @@ def test_orchestrator_failure_path():
         def _run(self, state, result):
             raise ValueError("Intentional crash")
 
-    orchestrator = AgentOrchestrator(Path(__file__).parent)
+    AgentOrchestrator(Path(__file__).parent)
     # Mocking run_pipeline logic slightly just to test agent failure handling
     config = {}
     state = PipelineState(config, pd.DataFrame(), {})
@@ -39,7 +37,6 @@ def test_end_to_end_smoke_test():
     """The end-to-end sample pipeline must generate all required artifact schemas."""
     # We will invoke the orchestrator on the sample data.
     # We must ensure the sample data exists.
-    import sys
 
     root_dir = Path(__file__).resolve().parent.parent.parent
 
@@ -61,3 +58,32 @@ def test_end_to_end_smoke_test():
     assert "financial_table_df" in state.agent_results["Financial Impact"].dataframes
     assert "production_schedule_df" in state.agent_results["Production Planning"].dataframes
     assert "path_df" in state.agent_results["Dispatch Optimization"].dataframes
+
+
+def test_demo_artifacts_exist():
+    """Verify that committed demo artifacts exist and have valid metadata schema."""
+    import json
+
+    root_dir = Path(__file__).resolve().parent.parent.parent
+    demo_dir = root_dir / "demo_artifacts"
+
+    # If the directory doesn't exist, we can't test it, but it should be committed.
+    if not demo_dir.exists():
+        return
+
+    metadata_path = demo_dir / "metadata.json"
+    assert metadata_path.exists()
+
+    with open(metadata_path, "r") as f:
+        metadata = json.load(f)
+
+    assert metadata.get("schema_version") == "1.0"
+    assert metadata.get("data_mode") == "generated_demo"
+    assert "pipeline_version" in metadata
+    assert len(metadata.get("artifacts_generated", [])) > 0
+
+    for fname in metadata["artifacts_generated"]:
+        assert (demo_dir / fname).exists()
+        # Verify non-empty
+        df = pd.read_csv(demo_dir / fname)
+        assert len(df) > 0

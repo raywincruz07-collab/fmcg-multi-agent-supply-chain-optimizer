@@ -1,0 +1,11 @@
+SkuId,VelocityClass,MeanDailyDemand,CoverageDays,RawTarget,RecommendedPackQty,CasesNeeded
+SKU_001,slow_mover,32.0,90,2880.0,2880,240
+SKU_002,medium_mover,45.57,30,1367.14,1368,114
+SKU_003,slow_mover,35.14,90,3162.86,3168,264
+SKU_004,fast_mover,52.44,14,734.14,732,61
+SKU_005,fast_mover,70.86,14,992.0,996,83
+SKU_006,fast_mover,53.6,14,750.4,756,63
+SKU_007,slow_mover,10.29,90,925.71,924,77
+SKU_008,medium_mover,43.86,30,1315.71,1320,110
+SKU_009,slow_mover,38.56,90,3470.06,3468,289
+SKU_010,fast_mover,57.0,14,798.0,792,66

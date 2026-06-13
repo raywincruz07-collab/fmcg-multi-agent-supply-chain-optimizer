@@ -24,52 +24,74 @@ def test_wape_zero_division():
 
 
 def test_chronological_split_and_no_leakage():
-    """Train maximum date must be earlier than test minimum date."""
+    """Train maximum date must be earlier than val min, and val max earlier than test min."""
     agent = DemandIntelligenceAgent()
 
-    # 40 days of data
-    dates = pd.date_range("2023-01-01", periods=40)
+    # Need at least validation(10) + test(10) + train(30) = 50 days
+    dates = pd.date_range("2023-01-01", periods=60)
     df = pd.DataFrame(
         {
             "Date": dates,
-            "SkuId": ["SKU_1"] * 40,
-            "SalesOrderQty": np.random.randint(10, 50, size=40),
+            "SkuId": ["SKU_1"] * 60,
+            "SalesOrderQty": np.random.randint(10, 50, size=60),
         }
     )
 
-    config = {"demand": {"horizon_days": 10}}
+    config = {"demand": {"validation_days": 10, "test_days": 10, "minimum_training_days": 30}}
     state = PipelineState(config=config, master_df=df, metadata={})
     result = AgentResult(agent_name="Demand", status="pending")
 
     agent._run(state, result)
 
-    forecast_df = result.dataframes["forecast_df"]
+    metrics = result.dataframes["metrics_df"].iloc[0]
 
-    # Verify the test/forecast dates are strictly the last 10 days
-    expected_test_dates = dates[-10:]
-    assert (forecast_df["Date"].values == expected_test_dates).all()
-
-    # Since we use 30 train days, train max is dates[29], test min is dates[30]
-    assert dates[29] < forecast_df["Date"].min()
+    assert metrics["Train_End"] < metrics["Val_Start"]
+    assert metrics["Val_End"] < metrics["Test_Start"]
 
 
-def test_model_selection_against_baselines():
-    """Model selection correctly picks the lowest WAPE."""
+def test_model_selection_independence():
+    """Test labels are not used for model selection, and altering test labels does not change the model."""
     agent = DemandIntelligenceAgent()
+    dates = pd.date_range("2023-01-01", periods=60)
 
-    # Create data where a naive constant forecast is perfect
+    # Base data: constant train/val
+    base_sales = [50] * 50 + [100] * 10
+    df1 = pd.DataFrame({"Date": dates, "SkuId": ["SKU_1"] * 60, "SalesOrderQty": base_sales})
+
+    config = {"demand": {"validation_days": 10, "test_days": 10, "minimum_training_days": 30}}
+
+    state1 = PipelineState(config=config, master_df=df1, metadata={})
+    res1 = AgentResult(agent_name="Demand", status="pending")
+    agent._run(state1, res1)
+    model1 = res1.dataframes["metrics_df"].iloc[0]["SelectedModel"]
+
+    # Alter the test labels drastically
+    alt_sales = [50] * 50 + [999] * 10
+    df2 = pd.DataFrame({"Date": dates, "SkuId": ["SKU_1"] * 60, "SalesOrderQty": alt_sales})
+
+    state2 = PipelineState(config=config, master_df=df2, metadata={})
+    res2 = AgentResult(agent_name="Demand", status="pending")
+    agent._run(state2, res2)
+    model2 = res2.dataframes["metrics_df"].iloc[0]["SelectedModel"]
+
+    # Model should be identical since selection is independent of test set
+    assert model1 == model2
+
+
+def test_insufficient_history_handled():
+    """SKUs with less than minimum required history are explicitly skipped."""
+    agent = DemandIntelligenceAgent()
     dates = pd.date_range("2023-01-01", periods=40)
-    df = pd.DataFrame(
-        {"Date": dates, "SkuId": ["SKU_1"] * 40, "SalesOrderQty": [50] * 40}  # Constant demand
-    )
+    df = pd.DataFrame({"Date": dates, "SkuId": ["SKU_1"] * 40, "SalesOrderQty": [10] * 40})
 
-    config = {"demand": {"horizon_days": 10}}
+    config = {
+        "demand": {"validation_days": 10, "test_days": 10, "minimum_training_days": 30}
+    }  # Needs 50
     state = PipelineState(config=config, master_df=df, metadata={})
     result = AgentResult(agent_name="Demand", status="pending")
 
     agent._run(state, result)
-    metrics = result.dataframes["metrics_df"]
 
-    # Naive Last should be absolutely perfect (0 WAPE) and be selected
-    assert metrics.iloc[0]["BestModel"] in ["naive_last", "rolling_mean_7d", "seasonal_naive_7d"]
-    assert metrics.iloc[0]["WAPE"] == 0.0
+    # Should skip the SKU and flag as excluded
+    assert result.metrics["Excluded_SKUs"] == 1
+    assert "Skipping SKU_1: insufficient data history" in result.rationale[0]

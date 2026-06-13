@@ -2,6 +2,7 @@ import pandas as pd
 import networkx as nx
 from fmcg_supply_chain.agents.base import BaseAgent
 from fmcg_supply_chain.orchestration.state import PipelineState, AgentResult
+from itertools import islice
 
 
 class DispatchOptimizationAgent(BaseAgent):
@@ -11,6 +12,8 @@ class DispatchOptimizationAgent(BaseAgent):
     def _run(self, state: PipelineState, result: AgentResult) -> None:
         dispatch_cfg = state.config.get("dispatch", {})
         cost_per_hop = dispatch_cfg.get("cost_per_hop", 50)
+        max_candidate_routes = dispatch_cfg.get("max_candidate_routes", 5)
+        max_route_hops = dispatch_cfg.get("max_route_hops", 6)
 
         edges_df = state.metadata.get("graph_edges", pd.DataFrame())
 
@@ -26,15 +29,12 @@ class DispatchOptimizationAgent(BaseAgent):
             source = row.get("source")
             target = row.get("target")
             if source and target:
-                # In a real scenario, edge weights would come from distance or carrier cost.
-                # Here we use a uniform unit weight to count hops if no explicit cost is provided.
-                weight = row.get("weight", cost_per_hop)
-                G.add_edge(source, target, weight=weight)
+                weight = row.get("cost", cost_per_hop)
+                capacity = row.get("capacity", float("inf"))
+                G.add_edge(source, target, weight=weight, capacity=capacity)
 
-        # Find path from all Plants to Customers
-        # For simplicity, we find shortest paths from any node starting with 'P_' (Plant) to 'Customer'
         plants = [n for n in G.nodes if str(n).startswith("P_")]
-        customers = [n for n in G.nodes if str(n) == "Customer"]
+        customers = [n for n in G.nodes if str(n).startswith("Customer")]
 
         if not customers:
             result.warnings.append(
@@ -45,22 +45,87 @@ class DispatchOptimizationAgent(BaseAgent):
 
         paths_info = []
 
+        total_routes_evaluated = 0
+
         for p in plants:
             for c in customers:
+                if not nx.has_path(G, source=p, target=c):
+                    continue
+
                 try:
-                    # Calculate shortest path by weight
-                    path = nx.shortest_path(G, source=p, target=c, weight="weight")
-                    path_cost = nx.shortest_path_length(G, source=p, target=c, weight="weight")
-                    hops = len(path) - 1
+                    candidates = list(
+                        islice(
+                            nx.shortest_simple_paths(G, source=p, target=c, weight="weight"),
+                            max_candidate_routes,
+                        )
+                    )
+
+                    if not candidates:
+                        continue
+
+                    # Evaluate candidates for capacity feasibility
+                    best_path = None
+                    best_cost = float("inf")
+                    best_hops = 0
+                    best_feasibility = False
+                    best_reason = ""
+
+                    for candidate in candidates:
+                        hops = len(candidate) - 1
+                        if hops > max_route_hops:
+                            continue
+
+                        total_routes_evaluated += 1
+
+                        path_cost = sum(
+                            G[candidate[i]][candidate[i + 1]]["weight"]
+                            for i in range(len(candidate) - 1)
+                        )
+                        path_capacity = min(
+                            G[candidate[i]][candidate[i + 1]]["capacity"]
+                            for i in range(len(candidate) - 1)
+                        )
+
+                        # In real world, demand dictates capacity feasibility. For demo, we assume capacity > 50 is feasible.
+                        is_feasible = path_capacity > 50
+
+                        if is_feasible and path_cost < best_cost:
+                            best_path = candidate
+                            best_cost = path_cost
+                            best_hops = hops
+                            best_feasibility = True
+                            best_reason = "Lowest cost feasible route"
+
+                    if best_path is None:
+                        # Fallback to the shortest infeasible if no feasible routes
+                        best_path = candidates[0]
+                        best_cost = sum(
+                            G[best_path[i]][best_path[i + 1]]["weight"]
+                            for i in range(len(best_path) - 1)
+                        )
+                        best_hops = len(best_path) - 1
+                        best_feasibility = False
+                        best_reason = "Shortest route (infeasible capacity)"
 
                     paths_info.append(
                         {
-                            "SourcePlant": p,
+                            "Source": p,
                             "Destination": c,
-                            "Path": " -> ".join(map(str, path)),
-                            "Hops": hops,
-                            "PathCost": path_cost,
+                            "Candidate_Route_Count": len(candidates),
+                            "Selected_Route": " -> ".join(map(str, best_path)),
+                            "Path_Cost": best_cost,
+                            "Number_of_Hops": best_hops,
+                            "Capacity_Feasibility": best_feasibility,
+                            "Selection_Reason": best_reason,
                         }
+                    )
+
+                    state.log_trace(
+                        self.name,
+                        f"Route Selection ({p} -> {c})",
+                        f"Selected {' -> '.join(map(str, best_path))} out of {len(candidates)} candidates. "
+                        f"Cost: {best_cost}. Capacity > 50 requirement met: {best_feasibility}. "
+                        f"Reason: {best_reason}.",
                     )
                 except nx.NetworkXNoPath:
                     continue
@@ -68,19 +133,22 @@ class DispatchOptimizationAgent(BaseAgent):
         paths_df = pd.DataFrame(paths_info)
         result.dataframes["path_df"] = paths_df
 
-        # Calculate summary metrics (genuine, not artificially clamped)
-        avg_hops = paths_df["Hops"].mean() if len(paths_df) > 0 else 0
-        avg_cost = paths_df["PathCost"].mean() if len(paths_df) > 0 else 0
+        if len(paths_df) > 0:
+            avg_hops = paths_df["Number_of_Hops"].mean()
+            avg_cost = paths_df["Path_Cost"].mean()
+            result.metrics["total_plants"] = len(plants)
+            result.metrics["average_network_hops"] = round(avg_hops, 2)
+            result.metrics["average_path_cost"] = round(avg_cost, 2)
+            result.metrics["total_candidate_routes_evaluated"] = total_routes_evaluated
 
-        result.metrics["total_plants"] = len(plants)
-        result.metrics["average_network_hops"] = round(avg_hops, 2)
-        result.metrics["average_path_cost"] = round(avg_cost, 2)
+            result.rationale.append(
+                f"Evaluated {total_routes_evaluated} route candidates up to max_hops={max_route_hops}. Extracted relative path-cost improvement across available choices."
+            )
+        else:
+            result.rationale.append("No viable paths found from plants to customers.")
 
-        result.rationale.append(
-            f"Derived {len(paths_info)} routing paths. Calculated true network hops and costs using NetworkX without enforcing benchmark bounds."
-        )
         state.log_trace(
             self.name,
             "Routing Optimization",
-            f"Found {len(paths_info)} feasible plant-to-customer paths.",
+            f"Found {len(paths_info)} plant-to-customer best paths from candidates.",
         )

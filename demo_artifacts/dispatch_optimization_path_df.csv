@@ -1,0 +1,7 @@
+Source,Destination,Candidate_Route_Count,Selected_Route,Path_Cost,Number_of_Hops,Capacity_Feasibility,Selection_Reason
+P_100,Customer_A,2,P_100 -> S_10 -> Customer_A,150,2,True,Lowest cost feasible route
+P_100,Customer_B,2,P_100 -> S_10 -> Customer_B,160,2,True,Lowest cost feasible route
+P_200,Customer_A,2,P_200 -> S_30 -> Customer_A,130,2,True,Lowest cost feasible route
+P_200,Customer_B,2,P_200 -> S_30 -> Customer_B,140,2,True,Lowest cost feasible route
+P_300,Customer_A,3,P_300 -> S_30 -> Customer_A,240,2,True,Lowest cost feasible route
+P_300,Customer_B,3,P_300 -> S_30 -> Customer_B,250,2,True,Lowest cost feasible route

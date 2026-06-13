@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 from fmcg_supply_chain.agents.base import BaseAgent
 from fmcg_supply_chain.orchestration.state import PipelineState, AgentResult
 
@@ -70,6 +69,12 @@ class PackSizeOptimizationAgent(BaseAgent):
                     "RecommendedPackQty": rec_pack_qty,
                     "CasesNeeded": int(rec_pack_qty / units_per_case),
                 }
+            )
+
+            state.log_trace(
+                self.name,
+                f"Pack Size Recommendation ({sku})",
+                f"Selected {rec_pack_qty} units because it satisfies MOQ {moq} and case multiple {units_per_case}.",
             )
 
         reco_df = pd.DataFrame(recos)

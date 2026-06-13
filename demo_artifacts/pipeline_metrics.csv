@@ -1,0 +1,18 @@
+Agent,Metric,Value
+Demand Intelligence,Global_Test_WAPE,57.45
+Demand Intelligence,Global_Test_MAE,23.53
+Demand Intelligence,SKUs_Forecasted,10
+Demand Intelligence,Excluded_SKUs,0
+Demand Intelligence,RF_Win_Rate,20.0
+Pack Size Optimization,fast_movers,4
+Pack Size Optimization,medium_movers,2
+Pack Size Optimization,slow_movers,4
+Financial Impact,Scenario,base
+Financial Impact,Revenue_Change_Pct,0.0
+Financial Impact,Operating_Contribution_Change_Pct,0.0
+Production Planning,plants_analysed,3
+Production Planning,avg_target_utilisation,1.54
+Dispatch Optimization,total_plants,3
+Dispatch Optimization,average_network_hops,2.0
+Dispatch Optimization,average_path_cost,178.33
+Dispatch Optimization,total_candidate_routes_evaluated,14

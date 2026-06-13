@@ -1,4 +1,3 @@
-import os
 import sys
 from pathlib import Path
 
@@ -23,21 +22,11 @@ def main():
     print("  2. Place the 'Temporal Data', 'Nodes', and 'Edges' directories inside:")
     print("     data/raw/supplygraph/\n")
 
-    print("--- 2. M5 Forecasting Dataset (Optional Benchmark) ---")
-    print("Reference: Makridakis, S., Spiliotis, E., & Assimakopoulos, V. (2020).")
-    print("           M5 Competition: Uncertainty Edition. Kaggle.")
-    print("License: Public domain / applicable Kaggle competition rules.")
-    print("Instructions:")
-    print("  1. Download the M5 Forecasting - Accuracy dataset from Kaggle.")
-    print("  2. Place 'calendar.csv', 'sales_train_validation.csv', etc. inside:")
-    print("     data/raw/m5/\n")
-
     print("================================================================")
 
     # Validation step
     root = Path(__file__).resolve().parent.parent
     sg_dir = root / "data" / "raw" / "supplygraph"
-    m5_dir = root / "data" / "raw" / "m5"
 
     missing_critical = False
 
@@ -54,11 +43,6 @@ def main():
         missing_critical = True
     else:
         print("[OK] SupplyGraph 'Nodes' found.")
-
-    if not (m5_dir / "calendar.csv").exists():
-        print("[INFO] Optional M5 dataset is missing. The M5 benchmark will not run.")
-    else:
-        print("[OK] M5 'calendar.csv' found.")
 
     print("\n================================================================")
     if missing_critical:

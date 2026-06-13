@@ -1,66 +1,120 @@
-import pytest
 import pandas as pd
 from fmcg_supply_chain.agents.financial import FinancialImpactAgent
 from fmcg_supply_chain.orchestration.state import PipelineState, AgentResult
 
 
-def test_financial_calculations_no_clamping():
-    """Financial outputs must change predictably when scenario assumptions change."""
+def test_financial_neutral_scenario():
+    """A neutral scenario must result in Scenario == Baseline for units and revenue."""
     agent = FinancialImpactAgent()
 
-    master_df = pd.DataFrame(
-        {
-            "SkuId": ["SKU_1"],
-            "Price": [100.0],
-            "UnitCost": [50.0],
-            "SalesOrderQty": [10],
-            "OnHandQty": [50],
-        }
-    )
-
-    reco_df = pd.DataFrame({"SkuId": ["SKU_1"], "RecommendedPackQty": [200]})
-
+    # Setup state with neutral config
     config = {
-        "active_scenario": "conservative",
+        "active_scenario": "base",
         "financial": {
-            "conservative": {
-                "cogs_ratio": 0.6,
-                "overhead_ratio": 0.1,
-                "carrying_cost_rate": 0.1,
+            "base": {
                 "demand_uplift_pct": 0.0,
+                "stockout_recovery_uplift_pct": 0.0,
+                "pack_revenue_impact_pct": 0.0,
                 "pack_consolidation_benefit_multiplier": 1.0,
-            },
-            "optimistic": {
-                "cogs_ratio": 0.6,
-                "overhead_ratio": 0.1,
-                "carrying_cost_rate": 0.1,
-                "demand_uplift_pct": 0.1,
-                "pack_consolidation_benefit_multiplier": 0.9,
-            },
+                "cogs_ratio": 0.60,
+                "overhead_ratio": 0.12,
+                "carrying_cost_rate": 0.20,
+            }
         },
     }
 
+    master_df = pd.DataFrame(
+        [{"SkuId": "SKU_1", "Price": 100, "UnitCost": 60, "SalesOrderQty": 10, "OnHandQty": 100}]
+    )
+
     state = PipelineState(config=config, master_df=master_df, metadata={})
 
-    pack_res = AgentResult("Pack Size", "success")
-    pack_res.dataframes["recommendations_df"] = reco_df
+    # Inject fake pack size recommendations to avoid error
+    pack_res = AgentResult("Pack Size Optimization", "success")
+    pack_res.dataframes["recommendations_df"] = pd.DataFrame(
+        [
+            # If carrying cost is base, say PackQty matches average inventory (100 -> avg inventory 100, pack 200)
+            # We just want to check units and revenue right now.
+            {"SkuId": "SKU_1", "RecommendedPackQty": 200}
+        ]
+    )
     state.agent_results["Pack Size Optimization"] = pack_res
 
-    result_cons = AgentResult("Fin", "pending")
-    agent._run(state, result_cons)
+    result = AgentResult("Financial Impact", "pending")
+    agent._run(state, result)
 
-    cons_df = result_cons.dataframes["financial_table_df"]
-    cons_pbt = cons_df.iloc[0]["After_PBT"]
+    fin_df = result.dataframes["financial_table_df"]
+    assert len(fin_df) == 1
+    row = fin_df.iloc[0]
 
-    # Now optimistic
-    state.config["active_scenario"] = "optimistic"
-    result_opt = AgentResult("Fin", "pending")
-    agent._run(state, result_opt)
+    # Invariants for neutral scenario
+    import pytest
 
-    opt_df = result_opt.dataframes["financial_table_df"]
-    opt_pbt = opt_df.iloc[0]["After_PBT"]
+    assert row["Scenario_Units"] == pytest.approx(row["Baseline_Units"])
+    assert row["Scenario_Revenue"] == pytest.approx(row["Baseline_Revenue"])
 
-    # Optimistic should yield higher PBT (due to demand uplift and cost reduction)
-    assert opt_pbt > cons_pbt
+    # Check that all effects are exactly 0
+    assert row["Revenue_Effect"] == pytest.approx(0.0)
+    assert row["COGS_Effect"] == pytest.approx(0.0)
+    assert row["Carrying_Cost_Effect"] == pytest.approx(0.0)
+    assert row["Pack_Conversion_Effect"] == pytest.approx(0.0)
+    assert row["Overhead_Effect"] == pytest.approx(0.0)
+    assert row["Total_Contribution_Change"] == pytest.approx(0.0)
+    assert row["Scenario_Operating_Contribution"] == pytest.approx(
+        row["Baseline_Operating_Contribution"]
+    )
 
-    # Check that np.clip or benchmarks are NOT in the file via text inspection in the audit later
+    # Mathematical identity checks
+    assert row["Total_Contribution_Change"] == pytest.approx(
+        row["Revenue_Effect"]
+        + row["COGS_Effect"]
+        + row["Carrying_Cost_Effect"]
+        + row["Pack_Conversion_Effect"]
+        + row["Overhead_Effect"]
+    )
+    assert row["Scenario_Operating_Contribution"] == pytest.approx(
+        row["Baseline_Operating_Contribution"] + row["Total_Contribution_Change"]
+    )
+
+
+def test_financial_scenario_impact():
+    agent = FinancialImpactAgent()
+    config = {
+        "active_scenario": "optimistic",
+        "financial": {
+            "optimistic": {
+                "demand_uplift_pct": 0.10,  # 10% uplift
+                "stockout_recovery_uplift_pct": 0.0,
+                "pack_revenue_impact_pct": 0.05,  # 5% revenue increase
+                "pack_consolidation_benefit_multiplier": 0.95,  # 5% reduction in COGS rate
+                "cogs_ratio": 0.60,
+                "overhead_ratio": 0.12,
+                "carrying_cost_rate": 0.20,
+            }
+        },
+    }
+
+    master_df = pd.DataFrame(
+        [{"SkuId": "SKU_1", "Price": 100, "UnitCost": 60, "SalesOrderQty": 10, "OnHandQty": 100}]
+    )
+
+    state = PipelineState(config=config, master_df=master_df, metadata={})
+    pack_res = AgentResult("Pack Size Optimization", "success")
+    pack_res.dataframes["recommendations_df"] = pd.DataFrame(
+        [{"SkuId": "SKU_1", "RecommendedPackQty": 200}]
+    )
+    state.agent_results["Pack Size Optimization"] = pack_res
+
+    result = AgentResult("Financial Impact", "pending")
+    agent._run(state, result)
+
+    row = result.dataframes["financial_table_df"].iloc[0]
+
+    # 10% uplift in units
+    assert round(row["Scenario_Units"], 2) == round(row["Baseline_Units"] * 1.10, 2)
+    # Revenue is units * price * 1.05
+    assert round(row["Scenario_Revenue"], 2) == round(
+        row["Scenario_Units"] * row["Baseline_Unit_Price"] * 1.05, 2
+    )
+    # Scenario COGS is scenario_units * cost * 0.60 * 0.95
+    assert round(row["Scenario_COGS"], 2) == round(row["Scenario_Units"] * 60 * 0.60 * 0.95, 2)

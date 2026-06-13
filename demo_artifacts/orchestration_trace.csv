@@ -1,0 +1,44 @@
+agent,action,details
+Orchestrator,Data Loaded,Loaded 1500 facts.
+Demand Intelligence,Start Execution,Agent Demand Intelligence began execution.
+Demand Intelligence,Model Selection (SKU_001),Selected naive_last (WAPE: 53.9%) because validation WAPE was lower than rolling_mean_7d (WAPE: 53.9%).
+Demand Intelligence,Model Selection (SKU_002),Selected rolling_mean_7d (WAPE: 32.3%) because validation WAPE was lower than naive_last (WAPE: 40.0%).
+Demand Intelligence,Model Selection (SKU_003),Selected rolling_mean_7d (WAPE: 64.0%) because validation WAPE was lower than seasonal_naive_7d (WAPE: 66.5%).
+Demand Intelligence,Model Selection (SKU_004),Selected random_forest (WAPE: 37.2%) because validation WAPE was lower than rolling_mean_7d (WAPE: 40.9%).
+Demand Intelligence,Model Selection (SKU_005),Selected rolling_mean_7d (WAPE: 42.8%) because validation WAPE was lower than random_forest (WAPE: 45.5%).
+Demand Intelligence,Model Selection (SKU_006),Selected seasonal_naive_7d (WAPE: 40.8%) because validation WAPE was lower than rolling_mean_7d (WAPE: 44.4%).
+Demand Intelligence,Model Selection (SKU_007),Selected rolling_mean_7d (WAPE: 57.3%) because validation WAPE was lower than random_forest (WAPE: 60.3%).
+Demand Intelligence,Model Selection (SKU_008),Selected rolling_mean_7d (WAPE: 60.9%) because validation WAPE was lower than naive_last (WAPE: 62.1%).
+Demand Intelligence,Model Selection (SKU_009),Selected random_forest (WAPE: 30.6%) because validation WAPE was lower than rolling_mean_7d (WAPE: 33.6%).
+Demand Intelligence,Model Selection (SKU_010),Selected naive_last (WAPE: 64.4%) because validation WAPE was lower than seasonal_naive_7d (WAPE: 67.1%).
+Demand Intelligence,Forecasting completed,Forecasted 10 SKUs. Excluded 0.
+Demand Intelligence,End Execution,Agent Demand Intelligence finished successfully.
+Pack Size Optimization,Start Execution,Agent Pack Size Optimization began execution.
+Pack Size Optimization,Pack Size Recommendation (SKU_001),Selected 2880 units because it satisfies MOQ 100 and case multiple 12.
+Pack Size Optimization,Pack Size Recommendation (SKU_002),Selected 1368 units because it satisfies MOQ 100 and case multiple 12.
+Pack Size Optimization,Pack Size Recommendation (SKU_003),Selected 3168 units because it satisfies MOQ 100 and case multiple 12.
+Pack Size Optimization,Pack Size Recommendation (SKU_004),Selected 732 units because it satisfies MOQ 100 and case multiple 12.
+Pack Size Optimization,Pack Size Recommendation (SKU_005),Selected 996 units because it satisfies MOQ 100 and case multiple 12.
+Pack Size Optimization,Pack Size Recommendation (SKU_006),Selected 756 units because it satisfies MOQ 100 and case multiple 12.
+Pack Size Optimization,Pack Size Recommendation (SKU_007),Selected 924 units because it satisfies MOQ 100 and case multiple 12.
+Pack Size Optimization,Pack Size Recommendation (SKU_008),Selected 1320 units because it satisfies MOQ 100 and case multiple 12.
+Pack Size Optimization,Pack Size Recommendation (SKU_009),Selected 3468 units because it satisfies MOQ 100 and case multiple 12.
+Pack Size Optimization,Pack Size Recommendation (SKU_010),Selected 792 units because it satisfies MOQ 100 and case multiple 12.
+Pack Size Optimization,Velocity classified,"Fast: 4, Med: 2, Slow: 4"
+Pack Size Optimization,End Execution,Agent Pack Size Optimization finished successfully.
+Financial Impact,Start Execution,Agent Financial Impact began execution.
+Financial Impact,Financial Simulation,Operating Contribution Change: 0.00% under base scenario.
+Financial Impact,End Execution,Agent Financial Impact finished successfully.
+Production Planning,Start Execution,Agent Production Planning began execution.
+Production Planning,Production Scheduling,Scheduled production for 10 SKUs across 3 plants.
+Production Planning,End Execution,Agent Production Planning finished successfully.
+Dispatch Optimization,Start Execution,Agent Dispatch Optimization began execution.
+Dispatch Optimization,Route Selection (P_100 -> Customer_A),Selected P_100 -> S_10 -> Customer_A out of 2 candidates. Cost: 150. Capacity > 50 requirement met: True. Reason: Lowest cost feasible route.
+Dispatch Optimization,Route Selection (P_100 -> Customer_B),Selected P_100 -> S_10 -> Customer_B out of 2 candidates. Cost: 160. Capacity > 50 requirement met: True. Reason: Lowest cost feasible route.
+Dispatch Optimization,Route Selection (P_200 -> Customer_A),Selected P_200 -> S_30 -> Customer_A out of 2 candidates. Cost: 130. Capacity > 50 requirement met: True. Reason: Lowest cost feasible route.
+Dispatch Optimization,Route Selection (P_200 -> Customer_B),Selected P_200 -> S_30 -> Customer_B out of 2 candidates. Cost: 140. Capacity > 50 requirement met: True. Reason: Lowest cost feasible route.
+Dispatch Optimization,Route Selection (P_300 -> Customer_A),Selected P_300 -> S_30 -> Customer_A out of 3 candidates. Cost: 240. Capacity > 50 requirement met: True. Reason: Lowest cost feasible route.
+Dispatch Optimization,Route Selection (P_300 -> Customer_B),Selected P_300 -> S_30 -> Customer_B out of 3 candidates. Cost: 250. Capacity > 50 requirement met: True. Reason: Lowest cost feasible route.
+Dispatch Optimization,Routing Optimization,Found 6 plant-to-customer best paths from candidates.
+Dispatch Optimization,End Execution,Agent Dispatch Optimization finished successfully.
+Orchestrator,Pipeline Complete,Finished sequential execution.

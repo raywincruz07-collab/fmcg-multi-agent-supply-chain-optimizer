@@ -36,8 +36,6 @@ def test_valid_mapping_joins():
 def test_zero_demand_retention():
     """Zero-demand rows must remain in model input."""
     # We can check that the data loader does not drop 0 values
-    from fmcg_supply_chain.data.loaders import UnifiedDataLoader
-    import numpy as np
 
     # Create a mock CSV with zero demand and read it
     df = pd.DataFrame({"Date": ["2023-01-01"], "SKU_1": [0]})
