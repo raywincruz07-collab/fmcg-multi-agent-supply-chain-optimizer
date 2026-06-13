@@ -109,3 +109,8 @@ The pipeline is verified by a 23-test suite covering all agents and integration 
 ```bash
 python -m pytest -v
 ```
+
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
