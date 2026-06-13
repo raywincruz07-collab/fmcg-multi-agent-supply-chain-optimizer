@@ -187,7 +187,9 @@ def render_overview(data):
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        val = metrics_df[metrics_df["Metric"] == "Operating_Contribution_Change_Pct"]["Value"].values
+        val = metrics_df[metrics_df["Metric"] == "Operating_Contribution_Change_Pct"][
+            "Value"
+        ].values
         render_metric("Op. Contribution Change", f"{float(val[0]):.1f}%" if len(val) else "N/A")
     with c2:
         val = metrics_df[metrics_df["Metric"] == "Revenue_Change_Pct"]["Value"].values
