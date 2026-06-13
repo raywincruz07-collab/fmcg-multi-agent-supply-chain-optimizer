@@ -3,7 +3,7 @@
 ![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)
 [![CI](https://github.com/raywincruz07-collab/fmcg-multi-agent-supply-chain-optimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/raywincruz07-collab/fmcg-multi-agent-supply-chain-optimizer/actions/workflows/ci.yml)
 
-**Repository maintained and professionally refactored by Raywin Cruz. Original implementation contributions by Namrath Basavaraju.**
+**Developed and maintained by Raywin Cruz.**
 
 This repository contains a deterministic decision-support orchestration pipeline for FMCG supply chains. It simulates data processing across five distinct stages: Demand Forecasting, Pack Size Optimization, Financial Impact Analysis, Production Planning, and Dispatch Network Routing.
 
@@ -24,7 +24,17 @@ This repository contains a deterministic decision-support orchestration pipeline
 
 ## Architecture & Blueprint
 
-This repository serves as an integration blueprint. In a production environment:
+```mermaid
+flowchart TD
+    Data[(Data Layer)] --> A[Demand Intelligence Agent]
+    A --> B[Pack Size Agent]
+    B --> C[Financial Agent]
+    B --> D[Production Agent]
+    D --> E[Dispatch Agent]
+    E --> Dash[Streamlit Dashboard]
+```
+
+This repository serves as an integration blueprint. In a potential SAP-integrated architecture:
 - **Demand Intelligence:** Deployed via **SAP BTP AI Core** (Model Serving).
 - **Pack Size Optimization:** Executed via **SAP HANA Cloud / Joule Agents** (Decision Layer).
 - **Financial Impact:** Visualized within **SAP Analytics Cloud**.
@@ -79,8 +89,23 @@ To run with the real dataset:
 └── tests/                # Pytest unit and integration tests
 ```
 
-## Results & Transparency
+## Verified Capabilities & Transparency
 
-- **Forecasting:** Baselines (e.g., Seasonal Naive, Rolling Mean) frequently outperform Random Forest for several SKUs. The pipeline honestly selects the best model per SKU based on validation set performance.
+- **Forecasting Evaluation:** Chronological evaluation and per-SKU model selection using validation WAPE. In the included generated-data demonstration, baseline models outperform Random Forest for most evaluated SKUs. This result describes the demo dataset and is not a general forecasting benchmark.
 - **Financial Scenarios:** Financial results are scenario estimates configured via `configs/default.yaml`, not observed historical outcomes. 
 - **Routing:** Dispatch results are graph-based scenario outputs calculated via shortest-path algorithms over a constrained graph.
+
+## Limitations
+
+- **No Live Integration:** No live SAP connection exists; it is a conceptual blueprint.
+- **Generated Data:** By default, runs on generated sample data.
+- **Not in Production:** This is a deterministic simulation, not deployed to production.
+- **Financial Estimates:** Financial results are scenario estimates, not observed outcomes.
+
+## Testing
+
+The pipeline is verified by a 23-test suite covering all agents and integration points:
+
+```bash
+python -m pytest -v
+```
