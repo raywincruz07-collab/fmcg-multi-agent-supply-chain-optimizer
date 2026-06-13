@@ -1,0 +1,68 @@
+# Configuration for FMCG Supply Chain Pipeline
+
+# Scenario selection (conservative, base, optimistic)
+active_scenario: base
+
+# Demand Forecasting Settings
+demand:
+  horizon_days: 30
+  models_to_evaluate:
+    - naive_last
+    - rolling_mean_7d
+    - seasonal_naive_7d
+    - random_forest
+  metric_for_selection: "WAPE"  # Lower is better
+
+# Pack-Size Rules
+pack_size:
+  # Multipliers on daily average demand per velocity class
+  multipliers:
+    fast_mover: 14     # e.g., 2 weeks coverage
+    medium_mover: 30   # e.g., 1 month coverage
+    slow_mover: 90     # e.g., 3 months coverage
+  
+  # Absolute minimum order quantity (MOQ)
+  moq: 100
+  
+  # Standard units per case for integer multiples
+  units_per_case: 12
+
+# Financial Scenarios
+financial:
+  conservative:
+    cogs_ratio: 0.65
+    overhead_ratio: 0.15
+    carrying_cost_rate: 0.25
+    financing_rate: 0.08
+    baseline_debtor_days: 45
+    pack_consolidation_benefit_multiplier: 0.95
+    demand_uplift_pct: 0.02
+
+  base:
+    cogs_ratio: 0.60
+    overhead_ratio: 0.12
+    carrying_cost_rate: 0.20
+    financing_rate: 0.06
+    baseline_debtor_days: 45
+    pack_consolidation_benefit_multiplier: 0.90
+    demand_uplift_pct: 0.05
+
+  optimistic:
+    cogs_ratio: 0.55
+    overhead_ratio: 0.10
+    carrying_cost_rate: 0.15
+    financing_rate: 0.04
+    baseline_debtor_days: 45
+    pack_consolidation_benefit_multiplier: 0.85
+    demand_uplift_pct: 0.10
+
+# Production Settings
+production:
+  holding_cost_per_unit: 0.5
+  setup_cost_per_batch: 500
+  max_plant_capacity_per_day: 10000
+
+# Dispatch Settings
+dispatch:
+  # Cost per hop in the graph, default values if historical network cost is unavailable
+  cost_per_hop: 50
